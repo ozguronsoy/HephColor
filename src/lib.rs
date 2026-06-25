@@ -155,6 +155,41 @@ impl std::str::FromStr for RGB<f32> {
     }
 }
 
+impl std::fmt::LowerHex for RGB<u8> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            write!(f, "#{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+        } else {
+            write!(f, "{:02x}{:02x}{:02x}", self.r, self.g, self.b)
+        }
+    }
+}
+
+impl std::fmt::LowerHex for RGB<f32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rgb: RGB<u8> = (*self).into();
+        std::fmt::LowerHex::fmt(&rgb, f)
+    }
+}
+
+impl std::fmt::UpperHex for RGB<u8> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // If the user uses the alternate flag `{:#X}`, prefix with '#'
+        if f.alternate() {
+            write!(f, "#{:02X}{:02X}{:02X}", self.r, self.g, self.b)
+        } else {
+            write!(f, "{:02X}{:02X}{:02X}", self.r, self.g, self.b)
+        }
+    }
+}
+
+impl std::fmt::UpperHex for RGB<f32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rgb: RGB<u8> = (*self).into();
+        std::fmt::UpperHex::fmt(&rgb, f)
+    }
+}
+
 impl Default for RGBA<u8> {
     fn default() -> Self {
         Self {
@@ -269,6 +304,57 @@ impl std::str::FromStr for RGBA<f32> {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let rgba: RGBA<u8> = s.parse()?;
         Ok(rgba.into())
+    }
+}
+
+impl std::fmt::LowerHex for RGBA<u8> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if f.alternate() {
+            write!(
+                f,
+                "#{:02x}{:02x}{:02x}{:02x}",
+                self.r, self.g, self.b, self.a
+            )
+        } else {
+            write!(
+                f,
+                "{:02x}{:02x}{:02x}{:02x}",
+                self.r, self.g, self.b, self.a
+            )
+        }
+    }
+}
+
+impl std::fmt::LowerHex for RGBA<f32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rgba: RGBA<u8> = (*self).into();
+        std::fmt::LowerHex::fmt(&rgba, f)
+    }
+}
+
+impl std::fmt::UpperHex for RGBA<u8> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // If the user uses the alternate flag `{:#X}`, prefix with '#'
+        if f.alternate() {
+            write!(
+                f,
+                "#{:02X}{:02X}{:02X}{:02X}",
+                self.r, self.g, self.b, self.a
+            )
+        } else {
+            write!(
+                f,
+                "{:02X}{:02X}{:02X}{:02X}",
+                self.r, self.g, self.b, self.a
+            )
+        }
+    }
+}
+
+impl std::fmt::UpperHex for RGBA<f32> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let rgba: RGBA<u8> = (*self).into();
+        std::fmt::UpperHex::fmt(&rgba, f)
     }
 }
 
@@ -390,6 +476,27 @@ mod tests {
     }
 
     #[test]
+    fn test_rgb_to_hex() {
+        let cu8 = RGB::<u8> {
+            r: 255,
+            g: 87,
+            b: 51,
+        };
+        assert_eq!(format!("{:X}", cu8), "FF5733");
+        assert_eq!(format!("{:x}", cu8), "ff5733");
+        assert_eq!(format!("{:#X}", cu8), "#FF5733");
+        assert_eq!(format!("{:#x}", cu8), "#ff5733");
+
+        let cf32 = RGB::<f32> {
+            r: 1.0,
+            g: 0.0,
+            b: 1.0,
+        };
+        assert_eq!(format!("{:X}", cf32), "FF00FF");
+        assert_eq!(format!("{:#x}", cf32), "#ff00ff");
+    }
+
+    #[test]
     fn test_rgba_defaults() {
         let cu8 = RGBA::<u8>::default();
         let cf32 = RGBA::<f32>::default();
@@ -507,5 +614,28 @@ mod tests {
             "#FF5733XX".parse::<RGBA<f32>>(),
             Err(ParseColorError::InvalidFormat)
         );
+    }
+
+    #[test]
+    fn test_rgba_to_hex() {
+        let cu8 = RGBA::<u8> {
+            r: 0,
+            g: 255,
+            b: 0,
+            a: 170,
+        };
+        assert_eq!(format!("{:X}", cu8), "00FF00AA");
+        assert_eq!(format!("{:x}", cu8), "00ff00aa");
+        assert_eq!(format!("{:#X}", cu8), "#00FF00AA");
+        assert_eq!(format!("{:#x}", cu8), "#00ff00aa");
+
+        let cf32 = RGBA::<f32> {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 1.0,
+        };
+        assert_eq!(format!("{:X}", cf32), "000000FF");
+        assert_eq!(format!("{:#x}", cf32), "#000000ff");
     }
 }
