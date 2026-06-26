@@ -44,6 +44,14 @@ pub struct RGBA<T: ColorChannel> {
     pub a: T,
 }
 
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct HSL {
+    pub h: f32,
+    pub s: f32,
+    pub l: f32,
+}
+
 impl Default for RGB<u8> {
     fn default() -> Self {
         Self { r: 0, g: 0, b: 0 }
@@ -80,46 +88,76 @@ impl From<RGB<f32>> for RGB<u8> {
     }
 }
 
-impl From<RGB<u8>> for RGBA<u8> {
-    fn from(rgb: RGB<u8>) -> Self {
+impl From<RGBA<u8>> for RGB<u8> {
+    fn from(rgba: RGBA<u8>) -> Self {
         Self {
-            r: rgb.r,
-            g: rgb.g,
-            b: rgb.b,
-            a: 255,
+            r: rgba.r,
+            g: rgba.g,
+            b: rgba.b,
         }
     }
 }
 
-impl From<RGB<u8>> for RGBA<f32> {
-    fn from(rgb: RGB<u8>) -> Self {
+impl From<RGBA<u8>> for RGB<f32> {
+    fn from(rgba: RGBA<u8>) -> Self {
         Self {
-            r: (rgb.r as f32) / 255.0,
-            g: (rgb.g as f32) / 255.0,
-            b: (rgb.b as f32) / 255.0,
-            a: 1.0,
+            r: (rgba.r as f32) / 255.0,
+            g: (rgba.g as f32) / 255.0,
+            b: (rgba.b as f32) / 255.0,
         }
     }
 }
 
-impl From<RGB<f32>> for RGBA<f32> {
-    fn from(rgb: RGB<f32>) -> Self {
+impl From<RGBA<f32>> for RGB<f32> {
+    fn from(rgba: RGBA<f32>) -> Self {
         Self {
-            r: rgb.r,
-            g: rgb.g,
-            b: rgb.b,
-            a: 1.0,
+            r: rgba.r,
+            g: rgba.g,
+            b: rgba.b,
         }
     }
 }
 
-impl From<RGB<f32>> for RGBA<u8> {
-    fn from(rgb: RGB<f32>) -> Self {
+impl From<RGBA<f32>> for RGB<u8> {
+    fn from(rgba: RGBA<f32>) -> Self {
         Self {
-            r: (rgb.r * 255.0).round() as u8,
-            g: (rgb.g * 255.0).round() as u8,
-            b: (rgb.b * 255.0).round() as u8,
-            a: 255,
+            r: (rgba.r * 255.0).round() as u8,
+            g: (rgba.g * 255.0).round() as u8,
+            b: (rgba.b * 255.0).round() as u8,
+        }
+    }
+}
+
+impl From<HSL> for RGB<u8> {
+    fn from(hsl: HSL) -> Self {
+        RGB::<f32>::from(hsl).into()
+    }
+}
+
+impl From<HSL> for RGB<f32> {
+    fn from(hsl: HSL) -> Self {
+        let c = (1.0 - (2.0 * hsl.l - 1.0).abs()) * hsl.s;
+        let x = c * (1.0 - ((hsl.h / 60.0) % 2.0 - 1.0).abs());
+        let m = hsl.l - c / 2.0;
+
+        let (r_prime, g_prime, b_prime) = if hsl.h >= 0.0 && hsl.h < 60.0 {
+            (c, x, 0.0)
+        } else if hsl.h >= 60.0 && hsl.h < 120.0 {
+            (x, c, 0.0)
+        } else if hsl.h >= 120.0 && hsl.h < 180.0 {
+            (0.0, c, x)
+        } else if hsl.h >= 180.0 && hsl.h < 240.0 {
+            (0.0, x, c)
+        } else if hsl.h >= 240.0 && hsl.h < 300.0 {
+            (x, 0.0, c)
+        } else {
+            (c, 0.0, x)
+        };
+
+        Self {
+            r: r_prime + m,
+            g: g_prime + m,
+            b: b_prime + m,
         }
     }
 }
@@ -234,43 +272,59 @@ impl From<RGBA<f32>> for RGBA<u8> {
     }
 }
 
-impl From<RGBA<u8>> for RGB<u8> {
-    fn from(rgba: RGBA<u8>) -> Self {
+impl From<RGB<u8>> for RGBA<u8> {
+    fn from(rgb: RGB<u8>) -> Self {
         Self {
-            r: rgba.r,
-            g: rgba.g,
-            b: rgba.b,
+            r: rgb.r,
+            g: rgb.g,
+            b: rgb.b,
+            a: 255,
         }
     }
 }
 
-impl From<RGBA<u8>> for RGB<f32> {
-    fn from(rgba: RGBA<u8>) -> Self {
+impl From<RGB<u8>> for RGBA<f32> {
+    fn from(rgb: RGB<u8>) -> Self {
         Self {
-            r: (rgba.r as f32) / 255.0,
-            g: (rgba.g as f32) / 255.0,
-            b: (rgba.b as f32) / 255.0,
+            r: (rgb.r as f32) / 255.0,
+            g: (rgb.g as f32) / 255.0,
+            b: (rgb.b as f32) / 255.0,
+            a: 1.0,
         }
     }
 }
 
-impl From<RGBA<f32>> for RGB<f32> {
-    fn from(rgba: RGBA<f32>) -> Self {
+impl From<RGB<f32>> for RGBA<f32> {
+    fn from(rgb: RGB<f32>) -> Self {
         Self {
-            r: rgba.r,
-            g: rgba.g,
-            b: rgba.b,
+            r: rgb.r,
+            g: rgb.g,
+            b: rgb.b,
+            a: 1.0,
         }
     }
 }
 
-impl From<RGBA<f32>> for RGB<u8> {
-    fn from(rgba: RGBA<f32>) -> Self {
+impl From<RGB<f32>> for RGBA<u8> {
+    fn from(rgb: RGB<f32>) -> Self {
         Self {
-            r: (rgba.r * 255.0).round() as u8,
-            g: (rgba.g * 255.0).round() as u8,
-            b: (rgba.b * 255.0).round() as u8,
+            r: (rgb.r * 255.0).round() as u8,
+            g: (rgb.g * 255.0).round() as u8,
+            b: (rgb.b * 255.0).round() as u8,
+            a: 255,
         }
+    }
+}
+
+impl From<HSL> for RGBA<u8> {
+    fn from(hsl: HSL) -> Self {
+        RGB::<u8>::from(hsl).into()
+    }
+}
+
+impl From<HSL> for RGBA<f32> {
+    fn from(hsl: HSL) -> Self {
+        RGB::<f32>::from(hsl).into()
     }
 }
 
@@ -355,6 +409,64 @@ impl std::fmt::UpperHex for RGBA<f32> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let rgba: RGBA<u8> = (*self).into();
         std::fmt::UpperHex::fmt(&rgba, f)
+    }
+}
+
+impl Default for HSL {
+    fn default() -> Self {
+        Self {
+            h: 0.0,
+            s: 0.0,
+            l: 0.0,
+        }
+    }
+}
+
+impl From<RGB<u8>> for HSL {
+    fn from(rgb: RGB<u8>) -> Self {
+        RGB::<f32>::from(rgb).into()
+    }
+}
+
+impl From<RGB<f32>> for HSL {
+    fn from(rgb: RGB<f32>) -> Self {
+        let max = rgb.r.max(rgb.g).max(rgb.b);
+        let min = rgb.r.min(rgb.g).min(rgb.b);
+        let delta = max - min;
+        let l = (max + min) / 2.0;
+
+        let s = if delta == 0.0 {
+            0.0
+        } else {
+            delta / (1.0 - (2.0 * l - 1.0).abs())
+        };
+
+        let mut h = if delta == 0.0 {
+            0.0
+        } else if max == rgb.r {
+            60.0 * (((rgb.g - rgb.b) / delta) % 6.0)
+        } else if max == rgb.g {
+            60.0 * (((rgb.b - rgb.r) / delta) + 2.0)
+        } else {
+            60.0 * (((rgb.r - rgb.g) / delta) + 4.0)
+        };
+
+        if h < 0.0 {
+            h += 360.0;
+        }
+        Self { h, s, l }
+    }
+}
+
+impl From<RGBA<u8>> for HSL {
+    fn from(rgba: RGBA<u8>) -> Self {
+        RGB::<f32>::from(rgba).into()
+    }
+}
+
+impl From<RGBA<f32>> for HSL {
+    fn from(rgba: RGBA<f32>) -> Self {
+        RGB::<f32>::from(rgba).into()
     }
 }
 
@@ -446,6 +558,40 @@ mod tests {
         assert_eq!(cu8_2.g, (0.50_f32 * 255.0).round() as u8);
         assert_eq!(cu8_2.b, (0.80_f32 * 255.0).round() as u8);
         assert_eq!(cu8_2.a, 255);
+    }
+
+    #[test]
+    fn test_rgb_to_hsl_conversion() {
+        let epsilon = 0.001;
+
+        let cf32 = RGB::<f32> {
+            r: 0.2,
+            g: 0.6,
+            b: 1.0,
+        };
+        let hsl_f32: HSL = cf32.into();
+        assert!((hsl_f32.h - 210.0).abs() < epsilon, "RGB<f32> Hue failed");
+        assert!(
+            (hsl_f32.s - 1.0).abs() < epsilon,
+            "RGB<f32> Saturation failed"
+        );
+        assert!(
+            (hsl_f32.l - 0.6).abs() < epsilon,
+            "RGB<f32> Lightness failed"
+        );
+
+        let cu8 = RGB::<u8> {
+            r: 51,
+            g: 153,
+            b: 255,
+        };
+        let hsl_u8: HSL = cu8.into();
+        assert!((hsl_u8.h - 210.0).abs() < epsilon, "RGB<u8> Hue failed");
+        assert!(
+            (hsl_u8.s - 1.0).abs() < epsilon,
+            "RGB<u8> Saturation failed"
+        );
+        assert!((hsl_u8.l - 0.6).abs() < epsilon, "RGB<u8> Lightness failed");
     }
 
     #[test]
@@ -562,7 +708,7 @@ mod tests {
     }
 
     #[test]
-    fn test_rgba_to_rgb_cross_type_conversion() {
+    fn test_rgba_to_rgb_generic_conversion() {
         let cu8_1 = RGBA::<u8> {
             r: 50,
             g: 100,
@@ -584,6 +730,45 @@ mod tests {
         assert_eq!(cu8_2.r, (0.30_f32 * 255.0).round() as u8);
         assert_eq!(cu8_2.g, (0.60_f32 * 255.0).round() as u8);
         assert_eq!(cu8_2.b, (0.90_f32 * 255.0).round() as u8);
+    }
+
+    #[test]
+    fn test_rgba_to_hsl_conversion() {
+        let epsilon = 0.001;
+
+        let cu8 = RGBA::<u8> {
+            r: 51,
+            g: 153,
+            b: 255,
+            a: 128,
+        };
+        let hsl_u8: HSL = cu8.into();
+        assert!((hsl_u8.h - 210.0).abs() < epsilon, "RGBA<u8> Hue failed");
+        assert!(
+            (hsl_u8.s - 1.0).abs() < epsilon,
+            "RGBA<u8> Saturation failed"
+        );
+        assert!(
+            (hsl_u8.l - 0.6).abs() < epsilon,
+            "RGBA<u8> Lightness failed"
+        );
+
+        let cf32 = RGBA::<f32> {
+            r: 1.0,
+            g: 0.0,
+            b: 0.0,
+            a: 0.5,
+        };
+        let hsl_f32: HSL = cf32.into();
+        assert!((hsl_f32.h - 0.0).abs() < epsilon, "RGBA<f32> Hue failed");
+        assert!(
+            (hsl_f32.s - 1.0).abs() < epsilon,
+            "RGBA<f32> Saturation failed"
+        );
+        assert!(
+            (hsl_f32.l - 0.5).abs() < epsilon,
+            "RGBA<f32> Lightness failed"
+        );
     }
 
     #[test]
@@ -637,5 +822,68 @@ mod tests {
         };
         assert_eq!(format!("{:X}", cf32), "000000FF");
         assert_eq!(format!("{:#x}", cf32), "#000000ff");
+    }
+
+    #[test]
+    fn test_hsl_to_rgb_conversion() {
+        let epsilon = 0.001;
+
+        let hsl_red = HSL {
+            h: 0.0,
+            s: 1.0,
+            l: 0.5,
+        };
+        let rgb_red_f32: RGB<f32> = hsl_red.into();
+        assert!((rgb_red_f32.r - 1.0).abs() < epsilon);
+        assert!((rgb_red_f32.g - 0.0).abs() < epsilon);
+        assert!((rgb_red_f32.b - 0.0).abs() < epsilon);
+
+        let hsl_blue = HSL {
+            h: 235.0,
+            s: 0.54,
+            l: 0.49,
+        };
+        let rgb_blue_f32: RGB<f32> = hsl_blue.into();
+        assert!((rgb_blue_f32.r - 0.2254).abs() < epsilon);
+        assert!((rgb_blue_f32.g - 0.2695).abs() < epsilon);
+        assert!((rgb_blue_f32.b - 0.7546).abs() < epsilon);
+
+        let rgb_blue_u8: RGB<u8> = hsl_blue.into();
+        assert_eq!(rgb_blue_u8.r, 57);
+        assert_eq!(rgb_blue_u8.g, 69);
+        assert_eq!(rgb_blue_u8.b, 192);
+    }
+
+    #[test]
+    fn test_hsl_to_rgba_conversion() {
+        let epsilon = 0.001;
+
+        let hsl_red = HSL {
+            h: 0.0,
+            s: 1.0,
+            l: 0.5,
+        };
+        let rgb_red_f32: RGBA<f32> = hsl_red.into();
+        assert!((rgb_red_f32.r - 1.0).abs() < epsilon);
+        assert!((rgb_red_f32.g - 0.0).abs() < epsilon);
+        assert!((rgb_red_f32.b - 0.0).abs() < epsilon);
+        assert_eq!(rgb_red_f32.a, 1.0);
+
+        let hsl_blue = HSL {
+            h: 235.0,
+            s: 0.54,
+            l: 0.49,
+        };
+        let rgb_blue_f32: RGBA<f32> = hsl_blue.into();
+        assert!((rgb_blue_f32.r - 0.2254).abs() < epsilon);
+        assert!((rgb_blue_f32.g - 0.2695).abs() < epsilon);
+        assert!((rgb_blue_f32.b - 0.7546).abs() < epsilon);
+        assert_eq!(rgb_blue_f32.a, 1.0);
+
+        let rgb_blue_u8: RGBA<u8> = hsl_blue.into();
+        assert_eq!(rgb_blue_u8.r, 57);
+        assert_eq!(rgb_blue_u8.g, 69);
+        assert_eq!(rgb_blue_u8.b, 192);
+        assert_eq!(rgb_blue_u8.a, 255);
     }
 }
