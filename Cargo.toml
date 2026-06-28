@@ -1,4 +1,10 @@
 [package]
-name = "heph_color"
+name = "renkrs"
 version = "0.1.0"
 edition = "2024"
+authors = ["Özgür Toprak Önsoy <ozguronsoy@gmail.com>"]
+description = "A zero-cost, high-performance color library."
+repository = "https://github.com/ozguronsoy/renkrs"
+license = "BSD-3-Clause"
+keywords = ["color", "rgb", "hsl", "hsv", "cmyk"]
+categories = ["graphics"]
