@@ -27,6 +27,7 @@ impl std::fmt::Display for ParseColorError {
     }
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGB<T: ColorChannel> {
@@ -35,6 +36,7 @@ pub struct RGB<T: ColorChannel> {
     pub b: T,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGBA<T: ColorChannel> {
@@ -44,6 +46,7 @@ pub struct RGBA<T: ColorChannel> {
     pub a: T,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HSL {
@@ -52,12 +55,23 @@ pub struct HSL {
     pub l: f32,
 }
 
+#[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HSV {
     pub h: f32,
     pub s: f32,
     pub v: f32,
+}
+
+#[allow(clippy::upper_case_acronyms)]
+#[repr(C)]
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct CMYK {
+    pub c: f32,
+    pub m: f32,
+    pub y: f32,
+    pub k: f32,
 }
 
 impl Default for RGB<u8> {
@@ -200,6 +214,22 @@ impl From<HSV> for RGB<f32> {
             r: r_prime + m,
             g: g_prime + m,
             b: b_prime + m,
+        }
+    }
+}
+
+impl From<CMYK> for RGB<u8> {
+    fn from(cmyk: CMYK) -> Self {
+        RGB::<f32>::from(cmyk).into()
+    }
+}
+
+impl From<CMYK> for RGB<f32> {
+    fn from(cmyk: CMYK) -> Self {
+        Self {
+            r: (1.0 - cmyk.c) * (1.0 - cmyk.k),
+            g: (1.0 - cmyk.m) * (1.0 - cmyk.k),
+            b: (1.0 - cmyk.y) * (1.0 - cmyk.k),
         }
     }
 }
@@ -382,6 +412,18 @@ impl From<HSV> for RGBA<f32> {
     }
 }
 
+impl From<CMYK> for RGBA<u8> {
+    fn from(cmyk: CMYK) -> Self {
+        RGB::<f32>::from(cmyk).into()
+    }
+}
+
+impl From<CMYK> for RGBA<f32> {
+    fn from(cmyk: CMYK) -> Self {
+        RGB::<f32>::from(cmyk).into()
+    }
+}
+
 impl std::str::FromStr for RGBA<u8> {
     type Err = ParseColorError;
 
@@ -536,6 +578,12 @@ impl From<HSV> for HSL {
     }
 }
 
+impl From<CMYK> for HSL {
+    fn from(cmyk: CMYK) -> Self {
+        RGB::<f32>::from(cmyk).into()
+    }
+}
+
 impl Default for HSV {
     fn default() -> Self {
         Self {
@@ -598,6 +646,74 @@ impl From<HSL> for HSV {
             2.0 * (1.0 - hsl.l / v)
         };
         Self { h: hsl.h, s, v }
+    }
+}
+
+impl From<CMYK> for HSV {
+    fn from(cmyk: CMYK) -> Self {
+        RGB::<f32>::from(cmyk).into()
+    }
+}
+
+impl Default for CMYK {
+    fn default() -> Self {
+        Self {
+            c: 0.0,
+            m: 0.0,
+            y: 0.0,
+            k: 0.0,
+        }
+    }
+}
+
+impl From<RGB<u8>> for CMYK {
+    fn from(rgb: RGB<u8>) -> Self {
+        RGB::<f32>::from(rgb).into()
+    }
+}
+
+impl From<RGB<f32>> for CMYK {
+    fn from(rgb: RGB<f32>) -> Self {
+        let k = 1.0 - rgb.r.max(rgb.g).max(rgb.b);
+        if (k - 1.0).abs() < f32::EPSILON {
+            Self {
+                c: 0.0,
+                m: 0.0,
+                y: 0.0,
+                k: 1.0,
+            }
+        } else {
+            Self {
+                c: (1.0 - rgb.r - k) / (1.0 - k),
+                m: (1.0 - rgb.g - k) / (1.0 - k),
+                y: (1.0 - rgb.b - k) / (1.0 - k),
+                k,
+            }
+        }
+    }
+}
+
+impl From<RGBA<u8>> for CMYK {
+    fn from(rgba: RGBA<u8>) -> Self {
+        RGB::<f32>::from(rgba).into()
+    }
+}
+
+impl From<RGBA<f32>> for CMYK {
+    fn from(rgba: RGBA<f32>) -> Self {
+        RGB::<f32>::from(rgba).into()
+    }
+}
+
+impl From<HSL> for CMYK {
+    fn from(hsl: HSL) -> Self {
+        RGB::<f32>::from(hsl).into()
+    }
+}
+
+impl From<HSV> for CMYK {
+    fn from(hsv: HSV) -> Self {
+        RGB::<f32>::from(hsv).into()
     }
 }
 
@@ -742,6 +858,44 @@ mod tests {
         assert!((hsv_u8.h - 210.0).abs() < epsilon);
         assert!((hsv_u8.s - 0.8).abs() < epsilon);
         assert!((hsv_u8.v - 1.0).abs() < epsilon);
+    }
+
+    #[test]
+    fn test_rgb_to_cmyk_conversion() {
+        let epsilon = 0.001;
+
+        let rgb_red = RGB::<f32> {
+            r: 1.0,
+            g: 0.0,
+            b: 0.0,
+        };
+        let cmyk_red: CMYK = rgb_red.into();
+        assert!((cmyk_red.c - 0.0).abs() < epsilon);
+        assert!((cmyk_red.m - 1.0).abs() < epsilon);
+        assert!((cmyk_red.y - 1.0).abs() < epsilon);
+        assert!((cmyk_red.k - 0.0).abs() < epsilon);
+
+        let rgb_black = RGB::<f32> {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+        };
+        let cmyk_black: CMYK = rgb_black.into();
+        assert!((cmyk_black.c - 0.0).abs() < epsilon);
+        assert!((cmyk_black.m - 0.0).abs() < epsilon);
+        assert!((cmyk_black.y - 0.0).abs() < epsilon);
+        assert!((cmyk_black.k - 1.0).abs() < epsilon);
+
+        let rgb_purple = RGB::<u8> {
+            r: 102,
+            g: 51,
+            b: 153,
+        };
+        let cmyk_purple: CMYK = rgb_purple.into();
+        assert!((cmyk_purple.c - 0.333).abs() < epsilon);
+        assert!((cmyk_purple.m - 0.666).abs() < epsilon);
+        assert!((cmyk_purple.y - 0.0).abs() < epsilon);
+        assert!((cmyk_purple.k - 0.400).abs() < epsilon);
     }
 
     #[test]
@@ -937,6 +1091,47 @@ mod tests {
     }
 
     #[test]
+    fn test_rgba_to_cmyk_conversion() {
+        let epsilon = 0.001;
+
+        let rgba_red = RGBA::<f32> {
+            r: 1.0,
+            g: 0.0,
+            b: 0.0,
+            a: 0.3,
+        };
+        let cmyk_red: CMYK = rgba_red.into();
+        assert!((cmyk_red.c - 0.0).abs() < epsilon);
+        assert!((cmyk_red.m - 1.0).abs() < epsilon);
+        assert!((cmyk_red.y - 1.0).abs() < epsilon);
+        assert!((cmyk_red.k - 0.0).abs() < epsilon);
+
+        let rgba_black = RGBA::<f32> {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 0.7,
+        };
+        let cmyk_black: CMYK = rgba_black.into();
+        assert!((cmyk_black.c - 0.0).abs() < epsilon);
+        assert!((cmyk_black.m - 0.0).abs() < epsilon);
+        assert!((cmyk_black.y - 0.0).abs() < epsilon);
+        assert!((cmyk_black.k - 1.0).abs() < epsilon);
+
+        let rgba_purple = RGBA::<u8> {
+            r: 102,
+            g: 51,
+            b: 153,
+            a: 217,
+        };
+        let cmyk_purple: CMYK = rgba_purple.into();
+        assert!((cmyk_purple.c - 0.333).abs() < epsilon);
+        assert!((cmyk_purple.m - 0.666).abs() < epsilon);
+        assert!((cmyk_purple.y - 0.0).abs() < epsilon);
+        assert!((cmyk_purple.k - 0.400).abs() < epsilon);
+    }
+
+    #[test]
     fn test_rgba_parse_hex() {
         let cu8_1: RGBA<u8> = "#FF5733CC".parse().unwrap();
         assert_eq!(cu8_1.r, 255);
@@ -1068,6 +1263,22 @@ mod tests {
     }
 
     #[test]
+    fn test_hsl_cmyk_cross_conversion() {
+        let epsilon = 0.002;
+
+        let hsl_purple = HSL {
+            h: 270.0,
+            s: 0.5,
+            l: 0.4,
+        };
+        let cmyk: CMYK = hsl_purple.into();
+        assert!((cmyk.c - 0.333).abs() < epsilon);
+        assert!((cmyk.m - 0.667).abs() < epsilon);
+        assert!((cmyk.y - 0.0).abs() < epsilon);
+        assert!((cmyk.k - 0.4).abs() < epsilon);
+    }
+
+    #[test]
     fn test_hsv_to_rgb_conversion() {
         let epsilon = 0.001;
 
@@ -1124,5 +1335,108 @@ mod tests {
         assert!((hsl.h - 45.0).abs() < epsilon);
         assert!((hsl.s - 0.6).abs() < epsilon);
         assert!((hsl.l - 0.5).abs() < epsilon);
+    }
+
+    #[test]
+    fn test_hsv_to_cmyk_conversion() {
+        let epsilon = 0.002;
+
+        let hsv_purple = HSV {
+            h: 270.0,
+            s: 0.666,
+            v: 0.6,
+        };
+        let cmyk: CMYK = hsv_purple.into();
+        assert!((cmyk.c - 0.333).abs() < epsilon);
+        assert!((cmyk.m - 0.667).abs() < epsilon);
+        assert!((cmyk.y - 0.0).abs() < epsilon);
+        assert!((cmyk.k - 0.4).abs() < epsilon);
+    }
+
+    #[test]
+    fn test_cmyk_to_rgb_conversion() {
+        let epsilon = 0.001;
+
+        let cmyk_cyan = CMYK {
+            c: 1.0,
+            m: 0.0,
+            y: 0.0,
+            k: 0.0,
+        };
+        let rgb_cyan: RGB<f32> = cmyk_cyan.into();
+        assert!((rgb_cyan.r - 0.0).abs() < epsilon);
+        assert!((rgb_cyan.g - 1.0).abs() < epsilon);
+        assert!((rgb_cyan.b - 1.0).abs() < epsilon);
+
+        let cmyk_mixed = CMYK {
+            c: 0.5,
+            m: 0.25,
+            y: 0.0,
+            k: 0.2,
+        };
+        let rgb_u8: RGB<u8> = cmyk_mixed.into();
+        assert_eq!(rgb_u8.r, 102);
+        assert_eq!(rgb_u8.g, 153);
+        assert_eq!(rgb_u8.b, 204);
+    }
+
+    #[test]
+    fn test_cmyk_to_rgba_conversion() {
+        let epsilon = 0.001;
+
+        let cmyk_cyan = CMYK {
+            c: 1.0,
+            m: 0.0,
+            y: 0.0,
+            k: 0.0,
+        };
+        let rgba_cyan: RGBA<f32> = cmyk_cyan.into();
+        assert!((rgba_cyan.r - 0.0).abs() < epsilon);
+        assert!((rgba_cyan.g - 1.0).abs() < epsilon);
+        assert!((rgba_cyan.b - 1.0).abs() < epsilon);
+
+        let cmyk_mixed = CMYK {
+            c: 0.5,
+            m: 0.25,
+            y: 0.0,
+            k: 0.2,
+        };
+        let rgba_u8: RGBA<u8> = cmyk_mixed.into();
+        assert_eq!(rgba_u8.r, 102);
+        assert_eq!(rgba_u8.g, 153);
+        assert_eq!(rgba_u8.b, 204);
+        assert_eq!(rgba_u8.a, 255);
+    }
+
+    #[test]
+    fn test_cmyk_to_hsl_conversion() {
+        let epsilon = 0.002;
+
+        let cmyk_purple = CMYK {
+            c: 1.0 / 3.0,
+            m: 2.0 / 3.0,
+            y: 0.0,
+            k: 0.4,
+        };
+        let hsl: HSL = cmyk_purple.into();
+        assert!((hsl.h - 270.0).abs() < epsilon);
+        assert!((hsl.s - 0.5).abs() < epsilon);
+        assert!((hsl.l - 0.4).abs() < epsilon);
+    }
+
+    #[test]
+    fn test_cmyk_to_hsv_conversion() {
+        let epsilon = 0.002;
+
+        let cmyk_purple = CMYK {
+            c: 1.0 / 3.0,
+            m: 2.0 / 3.0,
+            y: 0.0,
+            k: 0.4,
+        };
+        let hsv: HSV = cmyk_purple.into();
+        assert!((hsv.h - 270.0).abs() < epsilon);
+        assert!((hsv.s - 0.666).abs() < epsilon, "HSV Saturation failed");
+        assert!((hsv.v - 0.6).abs() < epsilon);
     }
 }
