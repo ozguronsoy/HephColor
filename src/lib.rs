@@ -1,15 +1,30 @@
-// src/lib.rs
+//! # renkrs
+//!
+//! A zero-cost, high-performance color library.
+//!
+//! `renkrs` provides conversions between RGB, RGBA, HSL, HSV, and CMYK color spaces.
+//!
+//! ## Example
+//! ```rust
+//! use renkrs::{RGB, HSL};
+//! let color: RGB<u8> = "#A32B86".parse().unwrap();
+//! let hsl: HSL = color.into();
+//! ```
 
+/// A marker trait used to restrict color channels to valid types.
 pub trait ColorChannel {}
 
+/// Implements `ColorChannel` for 8-bit unsigned integers.
 impl ColorChannel for u8 {}
+/// Implements `ColorChannel` for 32-bit floating-point numbers.
 impl ColorChannel for f32 {}
 
+/// Possible errors that can occur when parsing hex strings.
 #[derive(Debug, PartialEq)]
 pub enum ParseColorError {
-    /// The string was not exactly 6 characters (ignoring the optional '#')
+    /// The hex string was not exactly 6 or 8 characters.
     InvalidLength,
-    /// The string contained characters that are not valid hex (0-9, A-F)
+    /// The hex string contained non-hexadecimal characters.
     InvalidFormat,
 }
 
@@ -27,50 +42,76 @@ impl std::fmt::Display for ParseColorError {
     }
 }
 
+/// Stores color information as red, green, and blue.
 #[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGB<T: ColorChannel> {
+    /// Red.
     pub r: T,
+    /// Green.
     pub g: T,
+    /// Blue.
     pub b: T,
 }
 
+/// Stores color information as red, green, and blue with an alpha channel.
+///
+/// # Type Parameters
+///
+/// * `T` - The numeric type of the color channels. This is restricted by the [`ColorChannel`] trait.
 #[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct RGBA<T: ColorChannel> {
+    /// Red.
     pub r: T,
+    /// Green.
     pub g: T,
+    /// Blue.
     pub b: T,
+    /// Alpha.
     pub a: T,
 }
 
+/// Stores color information as hue, saturation, and lightness.
 #[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HSL {
+    /// Hue. Ranges from 0 to 360.
     pub h: f32,
+    /// Saturation. Ranges from 0 to 1.
     pub s: f32,
+    /// Lightness. Ranges from 0 to 1.
     pub l: f32,
 }
 
+/// Stores color information as hue, saturation, and value.
 #[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct HSV {
+    /// Hue. Ranges from 0 to 360.
     pub h: f32,
+    /// Saturation. Ranges from 0 to 1.
     pub s: f32,
+    /// Value. Ranges from 0 to 1.
     pub v: f32,
 }
 
+/// Stores color information as cyan, magenta, yellow, and key.
 #[allow(clippy::upper_case_acronyms)]
 #[repr(C)]
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct CMYK {
+    /// Cyan. Ranges from 0 to 1.
     pub c: f32,
+    /// Magenta. Ranges from 0 to 1.
     pub m: f32,
+    /// Yellow. Ranges from 0 to 1.
     pub y: f32,
+    /// Key. Ranges from 0 to 1.
     pub k: f32,
 }
 
@@ -130,22 +171,22 @@ impl From<RGBA<u8>> for RGB<f32> {
     }
 }
 
-impl From<RGBA<f32>> for RGB<f32> {
-    fn from(rgba: RGBA<f32>) -> Self {
-        Self {
-            r: rgba.r,
-            g: rgba.g,
-            b: rgba.b,
-        }
-    }
-}
-
 impl From<RGBA<f32>> for RGB<u8> {
     fn from(rgba: RGBA<f32>) -> Self {
         Self {
             r: (rgba.r * 255.0).round() as u8,
             g: (rgba.g * 255.0).round() as u8,
             b: (rgba.b * 255.0).round() as u8,
+        }
+    }
+}
+
+impl From<RGBA<f32>> for RGB<f32> {
+    fn from(rgba: RGBA<f32>) -> Self {
+        Self {
+            r: rgba.r,
+            g: rgba.g,
+            b: rgba.b,
         }
     }
 }
